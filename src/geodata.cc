@@ -252,7 +252,6 @@ GeoData::GeoData(const char *filepath) {
 GeoData::~GeoData() {
 	if(this->geo_data_) {
 		geo_data_destroy(this->geo_data_);
-        this->status_ = 0;
 	}
 }
 Handle<Value> GeoData::New(const Arguments& args) {
