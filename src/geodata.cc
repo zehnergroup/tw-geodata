@@ -74,25 +74,29 @@ void geo_data_destroy(geo_data *data) {
     }
 }
 
-geo_data* geo_data_create(const char *filepath);
-geo_data* geo_data_create(const char *filepath) {
+geo_data* geo_data_create(const char *filepath, int *status);
+geo_data* geo_data_create(const char *filepath, int *status) {
     FILE *handle = fopen(filepath, "rb");
     if(!handle) {
+        if(status) *status = -1000;
         return 0;
     }
     
     if(fseek(handle, 0, SEEK_END)) {
         fclose(handle);
-        return 0;
+        if(status) *status = -1001;
+        return;
     }
     unsigned int len = (unsigned int)ftell(handle);
     if(fseek(handle, 0, SEEK_SET)) {
         fclose(handle);
+        if(status) *status = -1002;
         return 0;
     }
     
     if(len < sizeof(unsigned char) * 4 + sizeof(unsigned int)) {
         fclose(handle);
+        if(status) *status = -1003;
         return 0;
     }
     
@@ -100,10 +104,12 @@ geo_data* geo_data_create(const char *filepath) {
     unsigned char header[4];
     if(!fread(header, 1, sizeof(unsigned char) * 4, handle)) {
         fclose(handle);
+        if(status) *status = -1004;
         return 0;
     }
     if(header[0] != 'G' || header[1] != 'E' || header[2] != 'O' || header[3] != '!') {
         fclose(handle);
+        if(status) *status = -1005;
         return 0;
     }
     
@@ -111,6 +117,7 @@ geo_data* geo_data_create(const char *filepath) {
     unsigned int num_polygons = 0;
     if(!fread(&num_polygons, 1, sizeof(unsigned int), handle)) {
         fclose(handle);
+        if(status) *status = -1006;
         return 0;
     }
     
@@ -129,6 +136,7 @@ geo_data* geo_data_create(const char *filepath) {
     void *buffer = malloc(buffer_len);
     if(!buffer) {
         fclose(handle);
+        if(status) *status = -1007;
         return 0;
     }
     
@@ -139,6 +147,7 @@ geo_data* geo_data_create(const char *filepath) {
     if(!fread(data->polygons, 1, buffer_len, handle)) {
         geo_data_destroy(data);
         fclose(handle);
+        if(status) *status = -1008;
         return 0;
     }
     
@@ -151,12 +160,14 @@ geo_data* geo_data_create(const char *filepath) {
         // get num_coordinates
         if(offset + polygon_len > buffer_len) {
             geo_data_destroy(data);
+            if(status) *status = -1009;
             return 0;
         }
         unsigned int num_coordinates = *(unsigned int *)polygon_ptr;
         polygon_len += num_coordinates * sizeof(double) * 2;
         if(offset + polygon_len > buffer_len) {
             geo_data_destroy(data);
+            if(status) *status = -1010;
             return 0;
         }
         offset += polygon_len;
