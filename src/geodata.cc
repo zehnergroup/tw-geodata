@@ -1,6 +1,8 @@
 #include <node.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <errno.h>
+#include <string.h>
 
 // GEODATA FILE FORMAT:
 //
@@ -206,7 +208,7 @@ GeoData::GeoData(const char *filepath) {
             const char *msg = NULL;
             switch(status) {
                 case -1000:
-                    msg = strerr(errno);
+                    msg = strerror(errno);
                     break;
                 case -1001:
                     msg = "-1001";
