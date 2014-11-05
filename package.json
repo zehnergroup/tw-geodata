@@ -2,7 +2,7 @@
 	"name": "geodata",
 	"description": "A custom node library to load a specialised geodat file and allow hit testing of it's polygons.",
 	"url": "http://github.com/zehnergroup/tw-geodata",
-	"version": "0.0.1",
+	"version": "0.0.2",
 	"main": "./lib/geodata.js",
 	"keywords": [],
 	"engines": {"node": ">=0.10.0"},
