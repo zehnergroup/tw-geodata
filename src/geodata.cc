@@ -38,9 +38,9 @@ typedef struct {
 
 int geo_data_hit_test(geo_data *data, double lng, double lat);
 int geo_data_hit_test(geo_data *data, double lng, double lat) {
-	if(!data) {
-		return 0;
-	}
+    if(!data) {
+        return 0;
+    }
     uint8_t *polygon_ptr = data->polygons;
     for(unsigned int n = 0; n < data->num_polygons; ++n) {
         unsigned int num_coordinates = *(unsigned int *)polygon_ptr; polygon_ptr += sizeof(unsigned int);
@@ -78,10 +78,14 @@ void geo_data_destroy(geo_data *data) {
 
 geo_data* geo_data_create(const char *filepath, int *status);
 geo_data* geo_data_create(const char *filepath, int *status) {
+    if(filepath == NULL || strlen(filepath) == 0) {
+        if(status) *status = -999;
+        return NULL;
+    }
+    
     FILE *handle = fopen(filepath, "r");
     if(handle == NULL) {
         if(status) *status = -1000;
-        ThrowException(Exception::TypeError(String::New(filepath)));
         return NULL;
     }
     
@@ -182,32 +186,47 @@ geo_data* geo_data_create(const char *filepath, int *status) {
 
 // C++ HORRIBLENESS
 
+// HELPERS
+
+static inline char *TO_CHAR(Handle<Value> val) {
+    String::Utf8Value utf8(val->ToString());
+    
+    int len = utf8.length() + 1;
+    char *str = (char *) calloc(sizeof(char), len);
+    strncpy(str, *utf8, len);
+    
+    return str;
+}
+
 // HEADER
 
 class GeoData : public node::ObjectWrap {
 public:
-	static void Init(Handle<Object> exports, Handle<Object> module);
+    static void Init(Handle<Object> exports, Handle<Object> module);
 private:
-	explicit GeoData(const char *filepath);
-	~GeoData();
-
-	static Handle<Value> New(const Arguments& args);
-	static Handle<Value> Contains(const Arguments& args);
-	static Persistent<Function> constructor;
-	geo_data *geo_data_;
+    explicit GeoData(const char *filepath);
+    ~GeoData();
+    
+    static Handle<Value> New(const Arguments& args);
+    static Handle<Value> Contains(const Arguments& args);
+    static Persistent<Function> constructor;
+    geo_data *geo_data_;
 };
 
 // IMPL
 
 Persistent<Function> GeoData::constructor;
 GeoData::GeoData(const char *filepath) {
-	if(filepath) {
+    if(filepath != NULL) {
         int status = 0;
-		this->geo_data_ = geo_data_create(filepath, &status);
+        this->geo_data_ = geo_data_create(filepath, &status);
         
-        if(status <= 0) {
+        if(status < 0) {
             const char *msg = NULL;
             switch(status) {
+                case -999:
+                    msg = "Missing filepath";
+                    break;
                 case -1000:
                     msg = strerror(errno);
                     break;
@@ -248,63 +267,65 @@ GeoData::GeoData(const char *filepath) {
             ThrowException(Exception::TypeError(String::New(msg)));
         }
         
-	} else {
-		this->geo_data_ = NULL;
-	}
+    } else {
+        this->geo_data_ = NULL;
+    }
 }
 GeoData::~GeoData() {
-	if(this->geo_data_) {
-		geo_data_destroy(this->geo_data_);
-	}
+    if(this->geo_data_) {
+        geo_data_destroy(this->geo_data_);
+    }
 }
+
 Handle<Value> GeoData::New(const Arguments& args) {
-	HandleScope scope;
-	if(args.IsConstructCall()) {
-		const char *filepath = (args[0]->IsUndefined()) ? NULL : *String::Utf8Value(args[0]->ToString());
-		GeoData *obj = new GeoData(filepath);
-		obj->Wrap(args.This());
-		return args.This();
-	} else {
-		const int argc = 1;
-		Local<Value> argv[argc] = {args[0]};
-		return scope.Close(constructor->NewInstance(argc, argv));
-	}
+    HandleScope scope;
+    if(args.IsConstructCall()) {
+        char *filepath = TO_CHAR(args[0]);
+        GeoData *obj = new GeoData((const char *)filepath);
+        free(filepath);
+        obj->Wrap(args.This());
+        return args.This();
+    } else {
+        const int argc = 1;
+        Local<Value> argv[argc] = {args[0]};
+        return scope.Close(constructor->NewInstance(argc, argv));
+    }
 }
 Handle<Value> GeoData::Contains(const Arguments& args) {
-	HandleScope scope;
-	
-	double lng = args[0]->IsUndefined() ? -320.0 : args[0]->NumberValue();
-	double lat = args[1]->IsUndefined() ? -320.0 : args[1]->NumberValue();
-
-	if(lng < -180.0 || lng > 180.0 || lat < -180.0 || lat > 180.0) {
-		return scope.Close(Boolean::New(false));
-	}
-
-	GeoData *obj = node::ObjectWrap::Unwrap<GeoData>(args.This());
-
-	if(geo_data_hit_test(obj->geo_data_, lng, lat)) {
-		return scope.Close(Boolean::New(true));
-	} else {
-		return scope.Close(Boolean::New(false));
-	}
+    HandleScope scope;
+    
+    double lng = args[0]->IsUndefined() ? -320.0 : args[0]->NumberValue();
+    double lat = args[1]->IsUndefined() ? -320.0 : args[1]->NumberValue();
+    
+    if(lng < -180.0 || lng > 180.0 || lat < -180.0 || lat > 180.0) {
+        return scope.Close(Boolean::New(false));
+    }
+    
+    GeoData *obj = node::ObjectWrap::Unwrap<GeoData>(args.This());
+    
+    if(geo_data_hit_test(obj->geo_data_, lng, lat)) {
+        return scope.Close(Boolean::New(true));
+    } else {
+        return scope.Close(Boolean::New(false));
+    }
 }
 
 void GeoData::Init(Handle<Object> exports, Handle<Object> module) {
-	// template
-	Local<FunctionTemplate> tpl = FunctionTemplate::New(New);
-	tpl->SetClassName(String::NewSymbol("GeoData"));
-	tpl->InstanceTemplate()->SetInternalFieldCount(1);
-
-	// prototype
-	tpl->PrototypeTemplate()->Set(String::NewSymbol("contains"),
-		FunctionTemplate::New(Contains)->GetFunction());
-	constructor = Persistent<Function>::New(tpl->GetFunction());
-
-	// module
-	module->Set(String::NewSymbol("exports"), constructor);
+    // template
+    Local<FunctionTemplate> tpl = FunctionTemplate::New(New);
+    tpl->SetClassName(String::NewSymbol("GeoData"));
+    tpl->InstanceTemplate()->SetInternalFieldCount(1);
+    
+    // prototype
+    tpl->PrototypeTemplate()->Set(String::NewSymbol("contains"),
+                                  FunctionTemplate::New(Contains)->GetFunction());
+    constructor = Persistent<Function>::New(tpl->GetFunction());
+    
+    // module
+    module->Set(String::NewSymbol("exports"), constructor);
 }
 
 void Init(Handle<Object> exports, Handle<Object> module) {
-	GeoData::Init(exports, module);
+    GeoData::Init(exports, module);
 }
 NODE_MODULE(geodata, Init);
