@@ -76,7 +76,7 @@ void geo_data_destroy(geo_data *data) {
 
 geo_data* geo_data_create(const char *filepath, int *status);
 geo_data* geo_data_create(const char *filepath, int *status) {
-    FILE *handle = fopen(filepath, "rb");
+    FILE *handle = fopen(filepath, "r");
     if(!handle) {
         if(status) *status = -1000;
         return NULL;
