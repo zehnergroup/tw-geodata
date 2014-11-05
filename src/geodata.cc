@@ -79,25 +79,25 @@ geo_data* geo_data_create(const char *filepath, int *status) {
     FILE *handle = fopen(filepath, "rb");
     if(!handle) {
         if(status) *status = -1000;
-        return 0;
+        return NULL;
     }
     
     if(fseek(handle, 0, SEEK_END)) {
         fclose(handle);
         if(status) *status = -1001;
-        return;
+        return NULL;
     }
     unsigned int len = (unsigned int)ftell(handle);
     if(fseek(handle, 0, SEEK_SET)) {
         fclose(handle);
         if(status) *status = -1002;
-        return 0;
+        return NULL;
     }
     
     if(len < sizeof(unsigned char) * 4 + sizeof(unsigned int)) {
         fclose(handle);
         if(status) *status = -1003;
-        return 0;
+        return NULL;
     }
     
     // verify header
@@ -105,12 +105,12 @@ geo_data* geo_data_create(const char *filepath, int *status) {
     if(!fread(header, 1, sizeof(unsigned char) * 4, handle)) {
         fclose(handle);
         if(status) *status = -1004;
-        return 0;
+        return NULL;
     }
     if(header[0] != 'G' || header[1] != 'E' || header[2] != 'O' || header[3] != '!') {
         fclose(handle);
         if(status) *status = -1005;
-        return 0;
+        return NULL;
     }
     
     // get num polygons
@@ -118,7 +118,7 @@ geo_data* geo_data_create(const char *filepath, int *status) {
     if(!fread(&num_polygons, 1, sizeof(unsigned int), handle)) {
         fclose(handle);
         if(status) *status = -1006;
-        return 0;
+        return NULL;
     }
     
     // create geodata
@@ -137,7 +137,7 @@ geo_data* geo_data_create(const char *filepath, int *status) {
     if(!buffer) {
         fclose(handle);
         if(status) *status = -1007;
-        return 0;
+        return NULL;
     }
     
     // assign buffer
@@ -148,7 +148,7 @@ geo_data* geo_data_create(const char *filepath, int *status) {
         geo_data_destroy(data);
         fclose(handle);
         if(status) *status = -1008;
-        return 0;
+        return NULL;
     }
     
     // verify data
@@ -161,14 +161,14 @@ geo_data* geo_data_create(const char *filepath, int *status) {
         if(offset + polygon_len > buffer_len) {
             geo_data_destroy(data);
             if(status) *status = -1009;
-            return 0;
+            return NULL;
         }
         unsigned int num_coordinates = *(unsigned int *)polygon_ptr;
         polygon_len += num_coordinates * sizeof(double) * 2;
         if(offset + polygon_len > buffer_len) {
             geo_data_destroy(data);
             if(status) *status = -1010;
-            return 0;
+            return NULL;
         }
         offset += polygon_len;
         polygon_ptr += polygon_len;
@@ -203,7 +203,7 @@ GeoData::GeoData(const char *filepath) {
 		this->geo_data_ = geo_data_create(filepath, &status);
         
         if(status <= 0) {
-            unsigned char *msg = NULL;
+            const char *msg = NULL;
             switch(status) {
                 case -1000:
                     msg = "-1000";
