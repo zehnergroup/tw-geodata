@@ -81,6 +81,7 @@ geo_data* geo_data_create(const char *filepath, int *status) {
     FILE *handle = fopen(filepath, "r");
     if(handle == NULL) {
         if(status) *status = -1000;
+        ThrowException(Exception::TypeError(String::New(filepath)));
         return NULL;
     }
     
