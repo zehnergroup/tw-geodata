@@ -77,7 +77,7 @@ void geo_data_destroy(geo_data *data) {
 geo_data* geo_data_create(const char *filepath, int *status);
 geo_data* geo_data_create(const char *filepath, int *status) {
     FILE *handle = fopen(filepath, "r");
-    if(!handle) {
+    if(handle == NULL) {
         if(status) *status = -1000;
         return NULL;
     }
@@ -206,7 +206,7 @@ GeoData::GeoData(const char *filepath) {
             const char *msg = NULL;
             switch(status) {
                 case -1000:
-                    msg = "-1000";
+                    msg = strerr(errno);
                     break;
                 case -1001:
                     msg = "-1001";
