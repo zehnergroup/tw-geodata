@@ -199,7 +199,52 @@ private:
 Persistent<Function> GeoData::constructor;
 GeoData::GeoData(const char *filepath) {
 	if(filepath) {
-		this->geo_data_ = geo_data_create(filepath);
+        int status = 0;
+		this->geo_data_ = geo_data_create(filepath, &status);
+        
+        if(status <= 0) {
+            unsigned char *msg = NULL;
+            switch(status) {
+                case -1000:
+                    msg = "-1000";
+                    break;
+                case -1001:
+                    msg = "-1001";
+                    break;
+                case -1002:
+                    msg = "-1002";
+                    break;
+                case -1003:
+                    msg = "-1003";
+                    break;
+                case -1004:
+                    msg = "-1004";
+                    break;
+                case -1005:
+                    msg = "-1005";
+                    break;
+                case -1006:
+                    msg = "-1006";
+                    break;
+                case -1007:
+                    msg = "-1007";
+                    break;
+                case -1008:
+                    msg = "-1008";
+                    break;
+                case -1009:
+                    msg = "-1009";
+                    break;
+                case -1010:
+                    msg = "-1010";
+                    break;
+                default:
+                    msg = "Unknown";
+                    break;
+            }
+            return ThrowException(Exception::TypeError(String::New(msg)));
+        }
+        
 	} else {
 		this->geo_data_ = NULL;
 	}
@@ -207,6 +252,7 @@ GeoData::GeoData(const char *filepath) {
 GeoData::~GeoData() {
 	if(this->geo_data_) {
 		geo_data_destroy(this->geo_data_);
+        this->status_ = 0;
 	}
 }
 Handle<Value> GeoData::New(const Arguments& args) {
