@@ -242,7 +242,7 @@ GeoData::GeoData(const char *filepath) {
                     msg = "Unknown";
                     break;
             }
-            return ThrowException(Exception::TypeError(String::New(msg)));
+            ThrowException(Exception::TypeError(String::New(msg)));
         }
         
 	} else {
